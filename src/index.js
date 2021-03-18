@@ -9,20 +9,78 @@ app.use(cors());
 
 const users = [];
 
+function isUUID ( uuid ) {
+  let s = "" + uuid;
+
+  s = s.match('^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$');
+  if (s === null) {
+    return false;
+  }
+  return true;
+}
+
 function checksExistsUserAccount(request, response, next) {
-  // Complete aqui
+  const { username } = request.headers;
+
+  const user = users.find((user) => user.username === username);
+
+  if(!user) {
+    return response.status(404).json({ error: "User not found." });
+  }
+
+  request.user = user;
+
+  return next();
 }
 
 function checksCreateTodosUserAvailability(request, response, next) {
-  // Complete aqui
+  const { user } = request;
+  // console.log(user.todos.length)
+  if(user.pro === false && user.todos.length >= 10) {
+    return response.status(403).json({ error: "Not isn't available create todo"})
+  }
+
+  return next();
 }
 
 function checksTodoExists(request, response, next) {
-  // Complete aqui
+  const { username } = request.headers;
+  const { id } = request.params;
+
+  const user = users.find((user) => user.username === username);
+  
+  if(!user) {
+    return response.status(404).json({ error: "User not found" });
+  }
+
+  if(!isUUID(id)) {
+    return response.status(400).json({ error: "Todo ID not is uuid" });
+  }
+
+  const userTodo = user.todos.find((todo) => todo.id === id);
+
+  if(!userTodo) {
+    return response.status(404).json({ error: "This ID doesn't belong to the user" });
+  }
+  
+  request.user = user;
+  request.todo = userTodo;
+
+  return next();
 }
 
 function findUserById(request, response, next) {
-  // Complete aqui
+  const { id } = request.params;
+
+  const user = users.find((user) => user.id === id);
+
+  if(!user) {
+    return response.status(404).json({ error: "User not found." });
+  }
+
+  request.user = user;
+
+  return next();
 }
 
 app.post('/users', (request, response) => {
@@ -52,7 +110,6 @@ app.get('/users/:id', findUserById, (request, response) => {
 
   return response.json(user);
 });
-
 app.patch('/users/:id/pro', findUserById, (request, response) => {
   const { user } = request;
 
